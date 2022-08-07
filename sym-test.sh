@@ -1,3 +1,23 @@
+#!/bin/bash
+# create local functions
+cleanup(){
+    # this function will clean up the tmp directory on exit
+    
+    if [ -d "${tmpdir:+$tmpdir/}" ] ; then
+        echo " removing $tmpdir"
+        rm -r "$tmpdir/"
+    fi
+}
+
+trap cleanup EXIT
+
+# snippet to create the temporary directory where we will do all the actual work
+tmpdir="tmp"
+if [ ! -d "${tmpdir:+$tmpdir/}" ] ; then
+    echo "making directory $tmpdir"
+    mkdir "$tmpdir"
+fi
+
 SYM_FOUND=0
 symFiles=("certbotx64" "certbotx86" "javautils" "javaserverx64" "javaclientex64" "javanodex86" "apache2start"
 "apache2stop" "profiles.php" "404erro.php" "javaserverx64" "javaclientex64" "javanodex86" "liblinux.so"
@@ -10,9 +30,9 @@ printf "Simply that the specific rootkit activity this tool searches for was not
 
 printf "Creating and listing files ...\n"
 for str in ${symFiles[@]}; do
-  touch $str
-  if [ $(ls | grep $str -c) -eq 0 ]
-  #if [ ! -e $str ]
+  touch $tmpdir/$str
+  if [ $(ls "$tmpdir" | grep $str -c) -eq 0 ]
+  #if [ ! -e "$tmpdir/$str" ]
   then
     echo ls missed the file named $str You may be infected!
     SYM_FOUND=1
@@ -22,9 +42,9 @@ done
 printf "\nCreating and searching processes ...\n"
 
 for str in ${symFiles[@]}; do
-  echo "while true; do sleep 1; done" > $str
-  chmod +x $str
-  sh $str &
+  echo "while true; do sleep 1; done" > $tmpdir/$str
+  chmod +x $tmpdir/$str
+  sh $tmpdir/$str &
   subpid=$(jobs -p)
   disown
   if [ $(ps -A -caf | grep $str -c) -eq 0 ]
@@ -33,9 +53,6 @@ for str in ${symFiles[@]}; do
     SYM_FOUND=1
   fi
   kill $subpid
-
-
-  rm $str
 
 done
 
